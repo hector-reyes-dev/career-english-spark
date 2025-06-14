@@ -57,7 +57,7 @@ const Index = () => {
     const currentStreak = stats?.current_streak ?? 0;
     const nextStreak = currentStreak + 1;
     const currentMaxStreak = stats?.max_streak ?? 0;
-    const newMaxStreak = Math.max(currentMax Streak, nextStreak);
+    const newMaxStreak = Math.max(currentMaxStreak, nextStreak);
 
     submitAnswer.mutate({
       questionId: question.id,
