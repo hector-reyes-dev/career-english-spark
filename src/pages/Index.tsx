@@ -20,8 +20,8 @@ const Index = () => {
   const [feedback, setFeedback] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Pregunta real de Supabase
-  const { data: question, isLoading: loadingQuestion, error: errorQuestion } = useDailyQuestion();
+  // Pregunta del día personalizada para el usuario
+  const { data: question, isLoading: loadingQuestion, error: errorQuestion } = useDailyQuestion(user?.id);
 
   // Racha del usuario real
   const { data: streak = 0, isLoading: loadingStreak } = useUserStreak(user?.id);
@@ -105,8 +105,8 @@ const Index = () => {
               </header>
               <div>
                 <h2 className="text-xl font-semibold mb-2">Pregunta del Día</h2>
-                <div className="bg-muted rounded p-4 mb-4">
-                  {question?.text ?? "Sin pregunta disponible."}
+                <div className="bg-muted rounded p-4 mb-4 min-h-[60px] flex items-center justify-center">
+                  {question ? question.text : "¡Felicidades! Has respondido todas las preguntas."}
                 </div>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -116,11 +116,12 @@ const Index = () => {
                   required
                   placeholder="Escribe tu respuesta en inglés aquí..."
                   onChange={e => setAnswer(e.target.value)}
+                  disabled={!question || submitAnswer.isPending}
                 />
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={answer.length === 0 || submitAnswer.isPending}
+                  disabled={!question || answer.length === 0 || submitAnswer.isPending}
                 >
                   {submitAnswer.isPending ? "Guardando..." : "Obtener feedback"}
                 </Button>

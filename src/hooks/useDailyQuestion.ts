@@ -2,20 +2,54 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-// Lee la última pregunta creada en Supabase
-export const useDailyQuestion = () => {
+// Lee una pregunta del día no respondida por el usuario, rotando diariamente.
+export const useDailyQuestion = (userId?: string) => {
   return useQuery({
-    queryKey: ["daily-question"],
+    queryKey: ["daily-question", userId],
+    enabled: !!userId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!userId) return null;
+
+      // 1. Obtener todas las preguntas
+      const { data: allQuestions, error: questionsError } = await supabase
         .from("questions")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1);
-      if (error) throw error;
-      if (!data || data.length === 0) throw new Error("Aún no hay pregunta del día");
-      return data[0];
+        .select("id, text");
+      if (questionsError) throw questionsError;
+      if (!allQuestions || allQuestions.length === 0) {
+        throw new Error("Aún no hay preguntas en el sistema.");
+      }
+
+      // 2. Obtener IDs de preguntas ya respondidas por el usuario
+      const { data: answered, error: answersError } = await supabase
+        .from("answers")
+        .select("question_id")
+        .eq("user_id", userId);
+      if (answersError) throw answersError;
+
+      const answeredQuestionIds = new Set(answered.map((a) => a.question_id));
+
+      // 3. Filtrar para obtener las no respondidas
+      const unansweredQuestions = allQuestions.filter(
+        (q) => !answeredQuestionIds.has(q.id)
+      );
+
+      // 4. Si ya respondió todo, no hay pregunta
+      if (unansweredQuestions.length === 0) {
+        return null;
+      }
+
+      // 5. Seleccionar una pregunta de forma determinista para el día actual
+      // Esto asegura que cada día vea una pregunta distinta de las que le quedan,
+      // pero la misma si recarga la página durante el día.
+      const dayIndex = Math.floor(new Date().getTime() / (1000 * 60 * 60 * 24));
+      const questionToShow =
+        unansweredQuestions[dayIndex % unansweredQuestions.length];
+
+      return questionToShow;
     },
+    // La pregunta es la misma durante todo el día.
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -69,7 +103,10 @@ export const useSubmitAnswer = (userId?: string, onSuccess?: () => void) => {
       if (streakError) throw streakError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["user-streak"] });
+      // Invalidar racha, pregunta del día e historial para refrescar los datos
+      queryClient.invalidateQueries({ queryKey: ["user-streak", userId] });
+      queryClient.invalidateQueries({ queryKey: ["daily-question", userId] });
+      queryClient.invalidateQueries({ queryKey: ["answer-history", userId] });
       if (onSuccess) onSuccess();
     },
   });
