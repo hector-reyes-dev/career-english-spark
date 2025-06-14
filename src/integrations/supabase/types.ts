@@ -65,16 +65,19 @@ export type Database = {
       streaks: {
         Row: {
           current_streak: number
+          max_streak: number
           updated_at: string
           user_id: string
         }
         Insert: {
           current_streak?: number
+          max_streak?: number
           updated_at?: string
           user_id: string
         }
         Update: {
           current_streak?: number
+          max_streak?: number
           updated_at?: string
           user_id?: string
         }

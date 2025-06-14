@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -53,20 +52,23 @@ export const useDailyQuestion = (userId?: string) => {
   });
 };
 
-// Carga la racha del usuario autenticado
-export const useUserStreak = (userId?: string) => {
+// Carga las estadísticas de racha del usuario
+export const useUserStats = (userId?: string) => {
   return useQuery({
-    queryKey: ["user-streak", userId],
+    queryKey: ["user-stats", userId],
     enabled: !!userId,
     queryFn: async () => {
-      if (!userId) return 0;
+      if (!userId) return { current_streak: 0, max_streak: 0 };
       const { data, error } = await supabase
         .from("streaks")
-        .select("current_streak")
+        .select("current_streak, max_streak")
         .eq("user_id", userId)
         .maybeSingle();
       if (error) throw error;
-      return data?.current_streak ?? 0;
+      return {
+        current_streak: data?.current_streak ?? 0,
+        max_streak: data?.max_streak ?? 0,
+      };
     },
   });
 };
@@ -80,11 +82,13 @@ export const useSubmitAnswer = (userId?: string, onSuccess?: () => void) => {
       answerText,
       feedback,
       nextStreak,
+      newMaxStreak,
     }: {
       questionId: string;
       answerText: string;
       feedback: string;
       nextStreak: number;
+      newMaxStreak: number;
     }) => {
       if (!userId) throw new Error("No autenticado");
       // 1. Insertar respuesta
@@ -99,12 +103,12 @@ export const useSubmitAnswer = (userId?: string, onSuccess?: () => void) => {
       // 2. Upsert a la racha del usuario
       const { error: streakError } = await supabase
         .from("streaks")
-        .upsert({ user_id: userId, current_streak: nextStreak, updated_at: new Date().toISOString() });
+        .upsert({ user_id: userId, current_streak: nextStreak, max_streak: newMaxStreak, updated_at: new Date().toISOString() });
       if (streakError) throw streakError;
     },
     onSuccess: () => {
       // Invalidar racha, pregunta del día e historial para refrescar los datos
-      queryClient.invalidateQueries({ queryKey: ["user-streak", userId] });
+      queryClient.invalidateQueries({ queryKey: ["user-stats", userId] });
       queryClient.invalidateQueries({ queryKey: ["daily-question", userId] });
       queryClient.invalidateQueries({ queryKey: ["answer-history", userId] });
       if (onSuccess) onSuccess();
