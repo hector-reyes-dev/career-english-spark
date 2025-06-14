@@ -5,6 +5,12 @@ import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import {
+  useDailyQuestion,
+  useUserStreak,
+  useSubmitAnswer,
+} from "@/hooks/useDailyQuestion";
+import { useToast } from "@/hooks/use-toast";
 
 const FAKE_QUESTION = "Describe a recent challenge you faced at work and how you overcame it.";
 const FAKE_STREAK = 4;
@@ -14,7 +20,19 @@ const Index = () => {
   const navigate = useNavigate();
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [streak, setStreak] = useState(FAKE_STREAK);
+  const { toast } = useToast();
+
+  // Pregunta real de Supabase
+  const { data: question, isLoading: loadingQuestion, error: errorQuestion } = useDailyQuestion();
+
+  // Racha del usuario real
+  const { data: streak = 0, isLoading: loadingStreak } = useUserStreak(user?.id);
+
+  // Mutación para enviar respuesta y actualizar racha
+  const submitAnswer = useSubmitAnswer(user?.id, () => {
+    setAnswer("");
+    toast({ title: "Respuesta guardada", description: "¡Recibiste feedback y tu racha fue actualizada!" });
+  });
 
   // Redirigir si no está autenticado
   useEffect(() => {
@@ -31,14 +49,20 @@ const Index = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simular feedback por ahora
-    setFeedback(getSimulatedFeedback(answer));
-    setAnswer("");
-    // Simulación: aumentar la racha
-    setStreak((prev) => prev + 1);
+    if (!question?.id) return;
+    const fb = getSimulatedFeedback(answer);
+    setFeedback(fb);
+
+    const nextStreak = streak + 1;
+    submitAnswer.mutate({
+      questionId: question.id,
+      answerText: answer,
+      feedback: fb,
+      nextStreak,
+    });
   };
 
-  if (loading) {
+  if (loading || loadingQuestion || loadingStreak) {
     return (
       <div className="min-h-screen flex items-center justify-center text-lg">
         Cargando...
@@ -46,10 +70,18 @@ const Index = () => {
     );
   }
 
+  if (errorQuestion) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-700">
+        {errorQuestion.message}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="bg-card rounded-lg shadow-lg w-full max-w-lg p-6 space-y-8">
-        <header className="flex flex-col items-center gap-2">
+        <header className="flex flex-col items-center gap-2 relative">
           <div className="flex items-center gap-2">
             <span className="font-bold text-2xl">🔥</span>
             <span className="text-lg">Racha actual: </span>
@@ -69,7 +101,9 @@ const Index = () => {
         </header>
         <div>
           <h2 className="text-xl font-semibold mb-2">Pregunta del Día</h2>
-          <div className="bg-muted rounded p-4 mb-4">{FAKE_QUESTION}</div>
+          <div className="bg-muted rounded p-4 mb-4">
+            {question?.text ?? "Sin pregunta disponible."}
+          </div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <textarea
@@ -82,9 +116,9 @@ const Index = () => {
           <Button
             type="submit"
             className="w-full"
-            disabled={answer.length === 0}
+            disabled={answer.length === 0 || submitAnswer.isPending}
           >
-            Obtener feedback
+            {submitAnswer.isPending ? "Guardando..." : "Obtener feedback"}
           </Button>
         </form>
         {feedback && (

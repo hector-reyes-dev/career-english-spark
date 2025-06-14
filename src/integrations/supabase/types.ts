@@ -9,7 +9,77 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      answers: {
+        Row: {
+          answer_text: string
+          created_at: string
+          feedback: string | null
+          id: string
+          question_id: string
+          user_id: string
+        }
+        Insert: {
+          answer_text: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          question_id: string
+          user_id: string
+        }
+        Update: {
+          answer_text?: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          question_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questions: {
+        Row: {
+          created_at: string
+          id: string
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          text?: string
+        }
+        Relationships: []
+      }
+      streaks: {
+        Row: {
+          current_streak: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_streak?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_streak?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
