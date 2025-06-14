@@ -19,6 +19,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
   const { toast } = useToast();
   const [view, setView] = useState<'question' | 'progress'>('question');
 
@@ -30,8 +31,8 @@ const Index = () => {
 
   // Mutación para enviar respuesta y actualizar racha
   const submitAnswer = useSubmitAnswer(user?.id, () => {
+    // No limpiar el feedback aquí para que el usuario pueda verlo
     setAnswer("");
-    setFeedback(null);
     toast({ title: "Respuesta guardada", description: "¡Recibiste feedback y tu racha fue actualizada!" });
   });
 
@@ -42,30 +43,48 @@ const Index = () => {
     }
   }, [loading, session, navigate]);
 
-  // Simulación de feedback IA
-  const getSimulatedFeedback = (text: string) => {
-    if (text.trim().length < 6) return "Your answer is a bit short. Try to expand it!";
-    return "Excellent structure! Consider using more connectors and advanced vocabulary.";
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question?.id) return;
-    const fb = getSimulatedFeedback(answer);
-    setFeedback(fb);
 
-    const currentStreak = stats?.current_streak ?? 0;
-    const nextStreak = currentStreak + 1;
-    const currentMaxStreak = stats?.max_streak ?? 0;
-    const newMaxStreak = Math.max(currentMaxStreak, nextStreak);
+    setIsGeneratingFeedback(true);
+    setFeedback(null);
 
-    submitAnswer.mutate({
-      questionId: question.id,
-      answerText: answer,
-      feedback: fb,
-      nextStreak,
-      newMaxStreak,
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-feedback', {
+        body: { answerText: answer },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      const fb = data.feedback;
+      setFeedback(fb);
+
+      const currentStreak = stats?.current_streak ?? 0;
+      const nextStreak = currentStreak + 1;
+      const currentMaxStreak = stats?.max_streak ?? 0;
+      const newMaxStreak = Math.max(currentMaxStreak, nextStreak);
+
+      submitAnswer.mutate({
+        questionId: question.id,
+        answerText: answer,
+        feedback: fb,
+        nextStreak,
+        newMaxStreak,
+      });
+
+    } catch (error: any) {
+      console.error("Error getting feedback:", error);
+      toast({
+        title: "Error al generar feedback",
+        description: error.message || "No se pudo conectar con el servicio de IA. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingFeedback(false);
+    }
   };
 
   if (loading || loadingQuestion || loadingStats) {
@@ -125,14 +144,18 @@ const Index = () => {
                     required
                     placeholder="Escribe tu respuesta en inglés aquí..."
                     onChange={e => setAnswer(e.target.value)}
-                    disabled={!question || submitAnswer.isPending}
+                    disabled={!question || submitAnswer.isPending || isGeneratingFeedback}
                   />
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={!question || answer.length === 0 || submitAnswer.isPending}
+                    disabled={!question || answer.length === 0 || submitAnswer.isPending || isGeneratingFeedback}
                   >
-                    {submitAnswer.isPending ? "Guardando..." : "Obtener feedback"}
+                    {isGeneratingFeedback
+                      ? "Generando feedback..."
+                      : submitAnswer.isPending
+                      ? "Guardando..."
+                      : "Obtener feedback"}
                   </Button>
                 </form>
                 {feedback && (
