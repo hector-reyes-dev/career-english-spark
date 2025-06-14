@@ -1,4 +1,3 @@
-// Update this page (the content is just a fallback if you fail to update the page)
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
@@ -11,9 +10,8 @@ import {
   useSubmitAnswer,
 } from "@/hooks/useDailyQuestion";
 import { useToast } from "@/hooks/use-toast";
-
-const FAKE_QUESTION = "Describe a recent challenge you faced at work and how you overcame it.";
-const FAKE_STREAK = 4;
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AnswerHistorySidebar } from "@/components/AnswerHistorySidebar";
 
 const Index = () => {
   const { session, user, loading } = useSupabaseAuth();
@@ -79,55 +77,64 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="bg-card rounded-lg shadow-lg w-full max-w-lg p-6 space-y-8">
-        <header className="flex flex-col items-center gap-2 relative">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-2xl">🔥</span>
-            <span className="text-lg">Racha actual: </span>
-            <span className="font-bold text-2xl">{streak}</span>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AnswerHistorySidebar userId={user?.id} />
+        <SidebarInset>
+          <div className="flex items-center justify-between p-4 border-b">
+            <SidebarTrigger />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                window.location.reload();
+              }}
+            >
+              Cerrar sesión
+            </Button>
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="absolute top-6 right-6"
-            onClick={async () => {
-              await supabase.auth.signOut();
-              window.location.reload();
-            }}
-          >
-            Cerrar sesión
-          </Button>
-        </header>
-        <div>
-          <h2 className="text-xl font-semibold mb-2">Pregunta del Día</h2>
-          <div className="bg-muted rounded p-4 mb-4">
-            {question?.text ?? "Sin pregunta disponible."}
+          <div className="flex items-center justify-center flex-1 px-4">
+            <div className="bg-card rounded-lg shadow-lg w-full max-w-lg p-6 space-y-8">
+              <header className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-2xl">🔥</span>
+                  <span className="text-lg">Racha actual: </span>
+                  <span className="font-bold text-2xl">{streak}</span>
+                </div>
+              </header>
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Pregunta del Día</h2>
+                <div className="bg-muted rounded p-4 mb-4">
+                  {question?.text ?? "Sin pregunta disponible."}
+                </div>
+              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <textarea
+                  className="w-full h-28 p-3 border border-muted rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                  value={answer}
+                  required
+                  placeholder="Escribe tu respuesta en inglés aquí..."
+                  onChange={e => setAnswer(e.target.value)}
+                />
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={answer.length === 0 || submitAnswer.isPending}
+                >
+                  {submitAnswer.isPending ? "Guardando..." : "Obtener feedback"}
+                </Button>
+              </form>
+              {feedback && (
+                <div className="bg-green-100 text-green-900 border border-green-200 rounded p-4 animate-fade-in">
+                  <strong>Feedback:</strong> {feedback}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <textarea
-            className="w-full h-28 p-3 border border-muted rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-            value={answer}
-            required
-            placeholder="Escribe tu respuesta en inglés aquí..."
-            onChange={e => setAnswer(e.target.value)}
-          />
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={answer.length === 0 || submitAnswer.isPending}
-          >
-            {submitAnswer.isPending ? "Guardando..." : "Obtener feedback"}
-          </Button>
-        </form>
-        {feedback && (
-          <div className="bg-green-100 text-green-900 border border-green-200 rounded p-4 animate-fade-in">
-            <strong>Feedback:</strong> {feedback}
-          </div>
-        )}
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
