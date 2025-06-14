@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useNavigate } from "react-router-dom";
@@ -57,6 +56,10 @@ const Index = () => {
 
       if (error) {
         throw new Error(error.message);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
       }
       
       const fb = data.feedback;

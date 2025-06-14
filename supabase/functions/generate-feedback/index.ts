@@ -18,7 +18,10 @@ serve(async (req) => {
   try {
     const { answerText } = await req.json()
     if (!answerText) {
-      throw new Error('answerText is required.')
+      return new Response(JSON.stringify({ error: 'answerText is required.' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -40,13 +43,17 @@ serve(async (req) => {
       }),
     })
 
+    const data = await response.json()
+
     if (!response.ok) {
-        const errorData = await response.json();
-        console.error('OpenAI API error:', errorData);
-        throw new Error(errorData.error?.message || 'Failed to get feedback from OpenAI.');
+        console.error('OpenAI API error:', data);
+        const errorMessage = data.error?.message || 'Failed to get feedback from OpenAI.';
+        return new Response(JSON.stringify({ error: errorMessage }), {
+          status: 200, // Return 200 but with an error payload
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
     }
 
-    const data = await response.json()
     const feedback = data.choices[0].message.content.trim();
 
     return new Response(JSON.stringify({ feedback }), {
@@ -55,7 +62,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-feedback function:', error)
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+      status: 200, // Return 200 but with an error payload
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
