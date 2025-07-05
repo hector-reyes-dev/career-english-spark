@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAnswerHistory } from "@/hooks/useAnswerHistory";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface AnswerHistorySidebarProps {
   userId?: string;
@@ -23,6 +24,11 @@ interface AnswerHistorySidebarProps {
 
 export function AnswerHistorySidebar({ userId, setView, view }: AnswerHistorySidebarProps) {
   const { data: history = [], isLoading } = useAnswerHistory(userId);
+  const navigate = useNavigate();
+
+  const handleAnswerClick = (answerId: string) => {
+    navigate(`/answer/${answerId}`);
+  };
 
   return (
     <Sidebar className="border-r border-border">
@@ -86,7 +92,10 @@ export function AnswerHistorySidebar({ userId, setView, view }: AnswerHistorySid
               ) : (
                 history.slice(0, 5).map((answer) => (
                   <SidebarMenuItem key={answer.id}>
-                    <div className="p-3 rounded-lg hover:bg-accent transition-colors cursor-pointer">
+                    <div 
+                      className="p-3 rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                      onClick={() => handleAnswerClick(answer.id)}
+                    >
                       <p className="text-sm font-medium line-clamp-2 text-foreground mb-1">
                         {answer.questions?.text || "Question deleted"}
                       </p>
