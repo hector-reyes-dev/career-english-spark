@@ -1,5 +1,5 @@
 
-import { History, MessageSquare, TrendingUp } from "lucide-react";
+import { MessageSquare, TrendingUp, User, Settings, LogOut } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -10,71 +10,94 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 import { useAnswerHistory } from "@/hooks/useAnswerHistory";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AnswerHistorySidebarProps {
   userId?: string;
   setView: (view: 'question' | 'progress') => void;
+  view: 'question' | 'progress';
 }
 
-export function AnswerHistorySidebar({ userId, setView }: AnswerHistorySidebarProps) {
+export function AnswerHistorySidebar({ userId, setView, view }: AnswerHistorySidebarProps) {
   const { data: history = [], isLoading } = useAnswerHistory(userId);
 
   return (
-    <Sidebar>
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <History className="h-5 w-5" />
-          <span className="font-semibold">Menú Principal</span>
+    <Sidebar className="border-r border-border">
+      <SidebarHeader className="p-6 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+            <MessageSquare className="h-5 w-5 text-primary-foreground" />
+          </div>
+          <span className="text-xl font-semibold text-foreground">Writely</span>
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      
+      <SidebarContent className="p-4">
         <SidebarGroup>
-          <SidebarGroupLabel>Navegación</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-               <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => setView('question')}>
-                  <MessageSquare className="h-4 w-4" />
-                  <span>Pregunta del Día</span>
+            <SidebarMenu className="space-y-1">
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => setView('question')}
+                  className={`w-full justify-start p-3 rounded-xl transition-colors ${
+                    view === 'question' 
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  }`}
+                >
+                  <MessageSquare className="h-5 w-5" />
+                  <span>Daily Question</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => setView('progress')}>
-                  <TrendingUp className="h-4 w-4" />
-                  <span>Análisis de Progreso</span>
+                <SidebarMenuButton 
+                  onClick={() => setView('progress')}
+                  className={`w-full justify-start p-3 rounded-xl transition-colors ${
+                    view === 'progress' 
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  }`}
+                >
+                  <TrendingUp className="h-5 w-5" />
+                  <span>My Progress</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Historial Reciente</SidebarGroupLabel>
+        
+        <SidebarGroup className="mt-8">
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+            Recent Answers
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-2">
               {isLoading ? (
-                <div className="p-4 text-sm text-muted-foreground">
-                  Cargando historial...
+                <div className="p-3 text-sm text-muted-foreground">
+                  Loading history...
                 </div>
               ) : history.length === 0 ? (
-                <div className="p-4 text-sm text-muted-foreground">
-                  No hay respuestas aún
+                <div className="p-3 text-sm text-muted-foreground">
+                  No answers yet
                 </div>
               ) : (
                 history.slice(0, 5).map((answer) => (
                   <SidebarMenuItem key={answer.id}>
-                    <SidebarMenuButton className="flex flex-col items-start h-auto py-3">
-                      <div className="flex items-center gap-2 w-full">
-                        <MessageSquare className="h-4 w-4 shrink-0" />
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(answer.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-sm font-medium line-clamp-2 text-left">
-                        {answer.questions?.text || "Pregunta eliminada"}
+                    <div className="p-3 rounded-lg hover:bg-accent transition-colors cursor-pointer">
+                      <p className="text-sm font-medium line-clamp-2 text-foreground mb-1">
+                        {answer.questions?.text || "Question deleted"}
                       </p>
-                    </SidebarMenuButton>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(answer.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
                   </SidebarMenuItem>
                 ))
               )}
@@ -82,6 +105,24 @@ export function AnswerHistorySidebar({ userId, setView }: AnswerHistorySidebarPr
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      
+      <SidebarFooter className="p-4 border-t border-border">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              onClick={async () => {
+                await supabase.auth.signOut();
+                window.location.reload();
+              }}
+              className="w-full justify-start p-3 rounded-xl text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              <User className="h-5 w-5" />
+              <span>John Doe</span>
+              <LogOut className="h-4 w-4 ml-auto" />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useNavigate } from "react-router-dom";
@@ -9,7 +10,7 @@ import {
   useSubmitAnswer,
 } from "@/hooks/useDailyQuestion";
 import { useToast } from "@/hooks/use-toast";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AnswerHistorySidebar } from "@/components/AnswerHistorySidebar";
 import { ProgressAnalysis } from "@/components/ProgressAnalysis";
 
@@ -19,6 +20,7 @@ const Index = () => {
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
+  const [wordCount, setWordCount] = useState(0);
   const { toast } = useToast();
   const [view, setView] = useState<'question' | 'progress'>('question');
 
@@ -30,9 +32,9 @@ const Index = () => {
 
   // Mutación para enviar respuesta y actualizar racha
   const submitAnswer = useSubmitAnswer(user?.id, () => {
-    // No limpiar el feedback aquí para que el usuario pueda verlo
     setAnswer("");
-    toast({ title: "Respuesta guardada", description: "¡Recibiste feedback y tu racha fue actualizada!" });
+    setWordCount(0);
+    toast({ title: "Answer saved", description: "You received feedback and your streak was updated!" });
   });
 
   // Redirigir si no está autenticado
@@ -41,6 +43,12 @@ const Index = () => {
       navigate("/auth");
     }
   }, [loading, session, navigate]);
+
+  // Update word count
+  useEffect(() => {
+    const words = answer.trim().split(/\s+/).filter(word => word.length > 0);
+    setWordCount(words.length);
+  }, [answer]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,8 +89,8 @@ const Index = () => {
     } catch (error: any) {
       console.error("Error getting feedback:", error);
       toast({
-        title: "Error al generar feedback",
-        description: error.message || "No se pudo conectar con el servicio de IA. Inténtalo de nuevo.",
+        title: "Error generating feedback",
+        description: error.message || "Could not connect to AI service. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -93,7 +101,7 @@ const Index = () => {
   if (loading || loadingQuestion || loadingStats) {
     return (
       <div className="min-h-screen flex items-center justify-center text-lg">
-        Cargando...
+        Loading...
       </div>
     );
   }
@@ -108,62 +116,73 @@ const Index = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AnswerHistorySidebar userId={user?.id} setView={setView} />
-        <SidebarInset>
-          <div className="flex items-center justify-between p-4 border-b">
-            <SidebarTrigger />
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={async () => {
-                await supabase.auth.signOut();
-                window.location.reload();
-              }}
-            >
-              Cerrar sesión
-            </Button>
-          </div>
-          <div className="flex items-center justify-center flex-1">
+      <div className="min-h-screen flex w-full bg-background">
+        <AnswerHistorySidebar userId={user?.id} setView={setView} view={view} />
+        <SidebarInset className="flex-1">
+          <div className="flex-1">
             {view === 'question' ? (
-              <div className="bg-card rounded-lg shadow-lg w-full max-w-lg p-6 space-y-8 animate-fade-in">
-                <header className="flex flex-col items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-2xl">🔥</span>
-                    <span className="text-lg">Racha actual: </span>
-                    <span className="font-bold text-2xl">{stats?.current_streak ?? 0}</span>
-                  </div>
-                </header>
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Pregunta del Día</h2>
-                  <div className="bg-muted rounded p-4 mb-4 min-h-[60px] flex items-center justify-center text-center">
-                    {question ? question.text : "¡Felicidades! Has respondido todas las preguntas."}
+              <div className="max-w-4xl mx-auto p-8">
+                {/* Header with streak info */}
+                <div className="flex justify-between items-center mb-12">
+                  <div className="flex items-center gap-8">
+                    <div className="text-center">
+                      <div className="text-sm text-muted-foreground mb-1">Current Streak</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-4xl">🔥</span>
+                        <span className="text-4xl font-bold text-primary">{stats?.current_streak ?? 0}</span>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm text-muted-foreground mb-1">Longest Streak</div>
+                      <div className="text-4xl font-bold text-foreground">{stats?.max_streak ?? 0}</div>
+                    </div>
                   </div>
                 </div>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <textarea
-                    className="w-full h-28 p-3 border border-muted rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                    value={answer}
-                    required
-                    placeholder="Escribe tu respuesta en inglés aquí..."
-                    onChange={e => setAnswer(e.target.value)}
-                    disabled={!question || submitAnswer.isPending || isGeneratingFeedback}
-                  />
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={!question || answer.length === 0 || submitAnswer.isPending || isGeneratingFeedback}
-                  >
-                    {isGeneratingFeedback
-                      ? "Generando feedback..."
-                      : submitAnswer.isPending
-                      ? "Guardando..."
-                      : "Obtener feedback"}
-                  </Button>
+
+                {/* Question Section */}
+                <div className="mb-8">
+                  <h1 className="text-2xl font-semibold text-foreground mb-6">Today's Question:</h1>
+                  <div className="text-xl text-muted-foreground leading-relaxed">
+                    "{question ? question.text : "Congratulations! You've answered all questions."}"
+                  </div>
+                </div>
+
+                {/* Answer Form */}
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <textarea
+                      className="w-full h-48 p-6 border border-input rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-card-foreground placeholder:text-muted-foreground text-base leading-relaxed"
+                      value={answer}
+                      required
+                      placeholder="Write your answer here in English... (min. 50 words)"
+                      onChange={e => setAnswer(e.target.value)}
+                      disabled={!question || submitAnswer.isPending || isGeneratingFeedback}
+                    />
+                    <div className="flex justify-between items-center mt-3">
+                      <div className="text-sm text-muted-foreground">
+                        Word Count: {wordCount}
+                      </div>
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="px-8 py-3 rounded-xl font-medium"
+                        disabled={!question || answer.length === 0 || submitAnswer.isPending || isGeneratingFeedback}
+                      >
+                        {isGeneratingFeedback
+                          ? "Generating feedback..."
+                          : submitAnswer.isPending
+                          ? "Saving..."
+                          : "Submit & Get Feedback"}
+                      </Button>
+                    </div>
+                  </div>
                 </form>
+
+                {/* Feedback Section */}
                 {feedback && (
-                  <div className="bg-green-100 text-green-900 border border-green-200 rounded p-4 animate-fade-in">
-                    <strong>Feedback:</strong> {feedback}
+                  <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-2xl animate-fade-in">
+                    <h3 className="font-semibold text-green-900 mb-3">Feedback:</h3>
+                    <p className="text-green-800 leading-relaxed">{feedback}</p>
                   </div>
                 )}
               </div>
