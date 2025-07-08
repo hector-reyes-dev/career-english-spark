@@ -69,7 +69,7 @@ const AnswerDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="flex-1">
       <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">

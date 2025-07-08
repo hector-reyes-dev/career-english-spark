@@ -10,11 +10,14 @@ import {
   useSubmitAnswer,
 } from "@/hooks/useDailyQuestion";
 import { useToast } from "@/hooks/use-toast";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AnswerHistorySidebar } from "@/components/AnswerHistorySidebar";
 import { ProgressAnalysis } from "@/components/ProgressAnalysis";
 
-const Index = () => {
+interface IndexProps {
+  view: 'question' | 'progress';
+  setView: (view: 'question' | 'progress') => void;
+}
+
+const Index = ({ view, setView }: IndexProps) => {
   const { session, user, loading } = useSupabaseAuth();
   const navigate = useNavigate();
   const [answer, setAnswer] = useState("");
@@ -22,7 +25,6 @@ const Index = () => {
   const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const { toast } = useToast();
-  const [view, setView] = useState<'question' | 'progress'>('question');
 
   // Pregunta del día personalizada para el usuario
   const { data: question, isLoading: loadingQuestion, error: errorQuestion } = useDailyQuestion(user?.id);
@@ -115,84 +117,77 @@ const Index = () => {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AnswerHistorySidebar userId={user?.id} setView={setView} view={view} />
-        <SidebarInset className="flex-1">
-          <div className="flex-1">
-            {view === 'question' ? (
-              <div className="max-w-4xl mx-auto p-8">
-                {/* Header with streak info */}
-                <div className="flex justify-between items-center mb-12">
-                  <div className="flex items-center gap-8">
-                    <div className="text-center">
-                      <div className="text-sm text-muted-foreground mb-1">Current Streak</div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-4xl">🔥</span>
-                        <span className="text-4xl font-bold text-primary">{stats?.current_streak ?? 0}</span>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm text-muted-foreground mb-1">Longest Streak</div>
-                      <div className="text-4xl font-bold text-foreground">{stats?.max_streak ?? 0}</div>
-                    </div>
-                  </div>
+    <div className="flex-1">
+      {view === 'question' ? (
+        <div className="max-w-4xl mx-auto p-8">
+          {/* Header with streak info */}
+          <div className="flex justify-between items-center mb-12">
+            <div className="flex items-center gap-8">
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground mb-1">Current Streak</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-4xl">🔥</span>
+                  <span className="text-4xl font-bold text-primary">{stats?.current_streak ?? 0}</span>
                 </div>
-
-                {/* Question Section */}
-                <div className="mb-8">
-                  <h1 className="text-2xl font-semibold text-foreground mb-6">Today's Question:</h1>
-                  <div className="text-xl text-muted-foreground leading-relaxed">
-                    "{question ? question.text : "Congratulations! You've answered all questions."}"
-                  </div>
-                </div>
-
-                {/* Answer Form */}
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <textarea
-                      className="w-full h-48 p-6 border border-input rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-card-foreground placeholder:text-muted-foreground text-base leading-relaxed"
-                      value={answer}
-                      required
-                      placeholder="Write your answer here in English... (min. 50 words)"
-                      onChange={e => setAnswer(e.target.value)}
-                      disabled={!question || submitAnswer.isPending || isGeneratingFeedback}
-                    />
-                    <div className="flex justify-between items-center mt-3">
-                      <div className="text-sm text-muted-foreground">
-                        Word Count: {wordCount}
-                      </div>
-                      <Button
-                        type="submit"
-                        size="lg"
-                        className="px-8 py-3 rounded-xl font-medium"
-                        disabled={!question || answer.length === 0 || submitAnswer.isPending || isGeneratingFeedback}
-                      >
-                        {isGeneratingFeedback
-                          ? "Generating feedback..."
-                          : submitAnswer.isPending
-                          ? "Saving..."
-                          : "Submit & Get Feedback"}
-                      </Button>
-                    </div>
-                  </div>
-                </form>
-
-                {/* Feedback Section */}
-                {feedback && (
-                  <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-2xl animate-fade-in">
-                    <h3 className="font-semibold text-green-900 mb-3">Feedback:</h3>
-                    <p className="text-green-800 leading-relaxed">{feedback}</p>
-                  </div>
-                )}
               </div>
-            ) : (
-              <ProgressAnalysis userId={user?.id} />
-            )}
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground mb-1">Longest Streak</div>
+                <div className="text-4xl font-bold text-foreground">{stats?.max_streak ?? 0}</div>
+              </div>
+            </div>
           </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+
+          {/* Question Section */}
+          <div className="mb-8">
+            <h1 className="text-2xl font-semibold text-foreground mb-6">Today's Question:</h1>
+            <div className="text-xl text-muted-foreground leading-relaxed">
+              "{question ? question.text : "Congratulations! You've answered all questions."}"
+            </div>
+          </div>
+
+          {/* Answer Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <textarea
+                className="w-full h-48 p-6 border border-input rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-card text-card-foreground placeholder:text-muted-foreground text-base leading-relaxed"
+                value={answer}
+                required
+                placeholder="Write your answer here in English... (min. 50 words)"
+                onChange={e => setAnswer(e.target.value)}
+                disabled={!question || submitAnswer.isPending || isGeneratingFeedback}
+              />
+              <div className="flex justify-between items-center mt-3">
+                <div className="text-sm text-muted-foreground">
+                  Word Count: {wordCount}
+                </div>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="px-8 py-3 rounded-xl font-medium"
+                  disabled={!question || answer.length === 0 || submitAnswer.isPending || isGeneratingFeedback}
+                >
+                  {isGeneratingFeedback
+                    ? "Generating feedback..."
+                    : submitAnswer.isPending
+                    ? "Saving..."
+                    : "Submit & Get Feedback"}
+                </Button>
+              </div>
+            </div>
+          </form>
+
+          {/* Feedback Section */}
+          {feedback && (
+            <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-2xl animate-fade-in">
+              <h3 className="font-semibold text-green-900 mb-3">Feedback:</h3>
+              <p className="text-green-800 leading-relaxed">{feedback}</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <ProgressAnalysis userId={user?.id} />
+      )}
+    </div>
   );
 };
 
