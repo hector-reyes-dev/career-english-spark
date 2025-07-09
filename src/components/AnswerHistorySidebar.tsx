@@ -47,7 +47,10 @@ export function AnswerHistorySidebar({ userId, setView, view }: AnswerHistorySid
             <SidebarMenu className="space-y-1">
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={() => setView('question')}
+                  onClick={() => {
+                    setView('question');
+                    navigate('/');
+                  }}
                   className={`w-full justify-start p-3 rounded-xl transition-colors ${
                     view === 'question' 
                       ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
@@ -60,7 +63,10 @@ export function AnswerHistorySidebar({ userId, setView, view }: AnswerHistorySid
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  onClick={() => setView('progress')}
+                  onClick={() => {
+                    setView('progress');
+                    navigate('/');
+                  }}
                   className={`w-full justify-start p-3 rounded-xl transition-colors ${
                     view === 'progress' 
                       ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
