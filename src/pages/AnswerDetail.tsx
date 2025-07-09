@@ -6,6 +6,7 @@ import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Calendar, MessageSquare, Lightbulb } from "lucide-react";
+import { StructuredFeedback } from "@/components/StructuredFeedback";
 import { useEffect } from "react";
 
 const AnswerDetail = () => {
@@ -139,19 +140,7 @@ const AnswerDetail = () => {
 
           {/* Feedback Card */}
           {answer.feedback && (
-            <Card className="border-0 shadow-lg bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-xl text-green-800">
-                  <Lightbulb className="h-5 w-5 text-green-600" />
-                  AI Feedback
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-green-800 leading-relaxed">
-                  {answer.feedback}
-                </p>
-              </CardContent>
-            </Card>
+            <StructuredFeedback feedback={answer.feedback} />
           )}
         </div>
       </div>

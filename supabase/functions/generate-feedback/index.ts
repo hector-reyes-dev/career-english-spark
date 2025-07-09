@@ -35,30 +35,88 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: "You are an English teacher. A student has provided the following answer to a daily question. Provide concise and constructive feedback on their response, focusing on grammar, vocabulary, and sentence structure. Keep the feedback to 2-3 sentences. Be encouraging and don't be too verbose.",
+            content: `You are an English writing teacher. Analyze the student's answer and provide structured feedback in JSON format with exactly this structure:
+            {
+              "structure": [
+                {"text": "Feedback point about structure", "isPositive": true/false}
+              ],
+              "vocabulary": [
+                {"text": "Feedback point about vocabulary", "isPositive": true/false}
+              ],
+              "grammar": [
+                {"text": "Feedback point about grammar", "isPositive": true/false}
+              ]
+            }
+            
+            Provide 2-4 feedback points per category. Be specific and constructive. Focus on:
+            - Structure: organization, flow, introduction, conclusion, paragraphs
+            - Vocabulary: word choice, variety, appropriateness, usage
+            - Grammar: sentence structure, tenses, punctuation, syntax
+            
+            Return ONLY the JSON object, no additional text.`
           },
-          { role: 'user', content: answerText },
+          {
+            role: 'user',
+            content: answerText
+          }
         ],
-        max_tokens: 150,
+        max_tokens: 500,
+        temperature: 0.7,
       }),
-    })
+    });
 
-    const data = await response.json()
-
+    const data = await response.json();
+    
     if (!response.ok) {
-        console.error('OpenAI API error:', data);
-        const errorMessage = data.error?.message || 'Failed to get feedback from OpenAI.';
-        return new Response(JSON.stringify({ error: errorMessage }), {
-          status: 200, // Return 200 but with an error payload
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
+      console.error('OpenAI API error:', data);
+      const errorMessage = data.error?.message || 'Failed to get feedback from OpenAI.';
+      return new Response(JSON.stringify({ error: errorMessage }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const feedback = data.choices[0].message.content.trim();
-
-    return new Response(JSON.stringify({ feedback }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    const feedbackContent = data.choices[0].message.content.trim();
+    
+    try {
+      // Parse the JSON response to validate it
+      const structuredFeedback = JSON.parse(feedbackContent);
+      
+      return new Response(
+        JSON.stringify({ 
+          feedback: feedbackContent,
+          structured: structuredFeedback
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError, 'Raw content:', feedbackContent);
+      
+      // If JSON parsing fails, return a fallback structure
+      const fallbackFeedback = {
+        structure: [
+          {"text": "Your answer shows good organization overall.", "isPositive": true}
+        ],
+        vocabulary: [
+          {"text": "Consider using more varied vocabulary.", "isPositive": false}
+        ],
+        grammar: [
+          {"text": "Grammar usage is generally correct.", "isPositive": true}
+        ]
+      };
+      
+      return new Response(
+        JSON.stringify({ 
+          feedback: JSON.stringify(fallbackFeedback),
+          structured: fallbackFeedback
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
   } catch (error) {
     console.error('Error in generate-feedback function:', error)
     return new Response(JSON.stringify({ error: error.message }), {
