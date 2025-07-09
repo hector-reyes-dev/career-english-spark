@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useDailyQuestion";
 import { useToast } from "@/hooks/use-toast";
 import { ProgressAnalysis } from "@/components/ProgressAnalysis";
+import { StructuredFeedback } from "@/components/StructuredFeedback";
 
 interface IndexProps {
   view: 'question' | 'progress';
@@ -178,9 +179,8 @@ const Index = ({ view, setView }: IndexProps) => {
 
           {/* Feedback Section */}
           {feedback && (
-            <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-2xl animate-fade-in">
-              <h3 className="font-semibold text-green-900 mb-3">Feedback:</h3>
-              <p className="text-green-800 leading-relaxed">{feedback}</p>
+            <div className="mt-8">
+              <StructuredFeedback feedback={feedback} />
             </div>
           )}
         </div>
