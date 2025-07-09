@@ -143,6 +143,20 @@ export function AnswerHistorySidebar({ userId, setView, view }: AnswerHistorySid
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        
+        {/* Footer Attribution */}
+        <div className="mt-4 px-3">
+          <a 
+            href="https://hectorcreative.dev" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors py-2 px-3 rounded-lg hover:bg-accent/50 group"
+          >
+            <span>Made with</span>
+            <span className="text-purple-500 group-hover:scale-110 transition-transform">💜</span>
+            <span>by Héctor Reyes</span>
+          </a>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
