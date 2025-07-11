@@ -8,6 +8,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AnswerHistorySidebar } from "@/components/AnswerHistorySidebar";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useState } from "react";
+import Landing from "./pages/Landing";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Auth from "@/pages/Auth";
@@ -20,10 +21,11 @@ const AppContent = () => {
   const location = useLocation();
   const [view, setView] = useState<'question' | 'progress'>('question');
   
-  // Don't show sidebar on auth page
-  if (location.pathname === '/auth') {
+  // Don't show sidebar on landing and auth pages
+  if (location.pathname === '/' || location.pathname === '/auth') {
     return (
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path="/auth" element={<Auth />} />
       </Routes>
     );
@@ -35,7 +37,7 @@ const AppContent = () => {
         <AnswerHistorySidebar userId={user?.id} setView={setView} view={view} />
         <SidebarInset className="flex-1">
           <Routes>
-            <Route path="/" element={<Index view={view} setView={setView} />} />
+            <Route path="/dashboard" element={<Index view={view} setView={setView} />} />
             <Route path="/answer/:id" element={<AnswerDetail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

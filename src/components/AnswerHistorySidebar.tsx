@@ -15,6 +15,7 @@ import {
 import { useAnswerHistory } from "@/hooks/useAnswerHistory";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface AnswerHistorySidebarProps {
   userId?: string;
@@ -25,6 +26,24 @@ interface AnswerHistorySidebarProps {
 export function AnswerHistorySidebar({ userId, setView, view }: AnswerHistorySidebarProps) {
   const { data: history = [], isLoading } = useAnswerHistory(userId);
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out.",
+      });
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleAnswerClick = (answerId: string) => {
     navigate(`/answer/${answerId}`);
@@ -37,7 +56,7 @@ export function AnswerHistorySidebar({ userId, setView, view }: AnswerHistorySid
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => {
             setView('question');
-            navigate('/');
+            navigate('/dashboard');
           }}
         >
           <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
@@ -55,7 +74,7 @@ export function AnswerHistorySidebar({ userId, setView, view }: AnswerHistorySid
                 <SidebarMenuButton 
                   onClick={() => {
                     setView('question');
-                    navigate('/');
+                    navigate('/dashboard');
                   }}
                   className={`w-full justify-start p-3 rounded-xl transition-colors ${
                     view === 'question' 
@@ -71,7 +90,7 @@ export function AnswerHistorySidebar({ userId, setView, view }: AnswerHistorySid
                 <SidebarMenuButton 
                   onClick={() => {
                     setView('progress');
-                    navigate('/');
+                    navigate('/dashboard');
                   }}
                   className={`w-full justify-start p-3 rounded-xl transition-colors ${
                     view === 'progress' 
@@ -131,10 +150,7 @@ export function AnswerHistorySidebar({ userId, setView, view }: AnswerHistorySid
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton 
-              onClick={async () => {
-                await supabase.auth.signOut();
-                window.location.reload();
-              }}
+              onClick={handleSignOut}
               className="w-full justify-start p-3 rounded-xl text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
             >
               <User className="h-5 w-5" />
